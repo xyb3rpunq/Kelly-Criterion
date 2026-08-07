@@ -1,0 +1,230 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-void text-ink font-sans antialiased;
+    overflow-x: hidden;
+    font-feature-settings: 'cv02', 'cv03', 'cv04';
+  }
+
+  /* Tabular figures everywhere numbers change in place, so the layout does not
+     twitch as digits update. */
+  .font-mono,
+  input[type='number'] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* One visible focus treatment for the whole app. Never removed, only styled. */
+  :focus-visible {
+    outline: 2px solid theme('colors.chain.DEFAULT');
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  ::selection {
+    background: theme('colors.gold.DEFAULT');
+    color: theme('colors.void');
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: theme('colors.void');
+  }
+  ::-webkit-scrollbar-thumb {
+    background: theme('colors.line');
+    border: 2px solid theme('colors.void');
+    border-radius: 6px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: theme('colors.mute');
+  }
+}
+
+@layer components {
+  /*
+   * Panels are drawn with a 1px *gradient* edge rather than a solid border.
+   * The mask trick paints the gradient only in the border box, which keeps the
+   * edge crisp at any radius and lets the gold->chain transition read as metal
+   * catching light rather than as a coloured outline.
+   */
+  .hairline {
+    position: relative;
+    isolation: isolate;
+  }
+  .hairline::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(
+      145deg,
+      rgba(212, 175, 55, 0.34) 0%,
+      rgba(110, 91, 255, 0.2) 42%,
+      rgba(231, 235, 243, 0.05) 72%,
+      rgba(212, 175, 55, 0.12) 100%
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .hairline-mute::before {
+    background: linear-gradient(
+      145deg,
+      rgba(231, 235, 243, 0.13) 0%,
+      rgba(231, 235, 243, 0.04) 60%,
+      rgba(231, 235, 243, 0.09) 100%
+    );
+  }
+
+  .hairline-gold::before {
+    background: linear-gradient(
+      145deg,
+      rgba(212, 175, 55, 0.6) 0%,
+      rgba(244, 228, 166, 0.25) 45%,
+      rgba(212, 175, 55, 0.18) 100%
+    );
+  }
+
+  /* Section eyebrow: the small tracked-out label above every panel title. */
+  .eyebrow {
+    @apply font-mono text-2xs uppercase tracking-terminal text-mute;
+  }
+
+  .metal-text {
+    background: linear-gradient(100deg, #f4e4a6 0%, #d4af37 38%, #8a6d1f 66%, #f4e4a6 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Native range input, restyled. Kept as <input type="range"> so keyboard and
+     screen-reader behaviour comes for free. */
+  .slider {
+    @apply w-full appearance-none bg-transparent;
+    height: 28px;
+  }
+  .slider::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--track, theme('colors.line'));
+  }
+  .slider::-moz-range-track {
+    height: 4px;
+    border-radius: 2px;
+    background: var(--track, theme('colors.line'));
+  }
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    margin-top: -6px;
+    border-radius: 50%;
+    background: theme('colors.gold.lit');
+    border: 1px solid theme('colors.gold.deep');
+    box-shadow:
+      0 0 0 3px rgba(212, 175, 55, 0.14),
+      0 0 16px -2px rgba(212, 175, 55, 0.7);
+    cursor: grab;
+    transition:
+      transform 0.14s ease,
+      box-shadow 0.14s ease;
+  }
+  .slider::-moz-range-thumb {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: theme('colors.gold.lit');
+    border: 1px solid theme('colors.gold.deep');
+    box-shadow:
+      0 0 0 3px rgba(212, 175, 55, 0.14),
+      0 0 16px -2px rgba(212, 175, 55, 0.7);
+    cursor: grab;
+  }
+  .slider:hover::-webkit-slider-thumb {
+    transform: scale(1.18);
+    box-shadow:
+      0 0 0 4px rgba(212, 175, 55, 0.2),
+      0 0 22px 0 rgba(212, 175, 55, 0.85);
+  }
+  .slider:active::-webkit-slider-thumb {
+    cursor: grabbing;
+    transform: scale(1.06);
+  }
+
+  /* Strip the spinners from number inputs — they fight the monospace alignment. */
+  .no-spin::-webkit-outer-spin-button,
+  .no-spin::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .no-spin {
+    -moz-appearance: textfield;
+  }
+}
+
+/* Comet running the Kelly gauge arc. Paired with pathLength="100" on the path,
+   so one cycle is exactly one traversal at any arc length. */
+@keyframes kelly-comet {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Horizontal-scroll container for wide content (tables, charts) so the page
+     body itself never scrolls sideways on mobile. */
+  .scroll-x {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/*
+ * Respect the OS setting. Motion in this app is decorative — the orchestrated
+ * load sequence, the gauge sweep, the background drift — so all of it can be
+ * removed without losing information.
+ */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

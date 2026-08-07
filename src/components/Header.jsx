@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion'
-import { INSTRUMENTS } from '../lib/market.js'
 import { LANGUAGES } from '../lib/i18n.jsx'
 import { useLanguage } from '../hooks/useLanguage.jsx'
-import { fmtNum, fmtSignedPct, fmtAge } from '../lib/format.js'
+import { fmtAge, fmtClock } from '../lib/format.js'
 import { Pill } from './ui/Stat.jsx'
+import { Ticker } from './Ticker.jsx'
 
 const STATUS = {
   connecting: { tone: 'dim', dot: 'bg-mute' },
@@ -36,40 +36,6 @@ function LanguageSwitch({ lang, setLang, label }) {
           </button>
         )
       })}
-    </div>
-  )
-}
-
-function TickerCell({ instrument, quote, now }) {
-  const price = quote?.price
-  const change = quote?.changePct
-  const up = Number.isFinite(change) && change > 0
-  const down = Number.isFinite(change) && change < 0
-
-  return (
-    <div className="flex shrink-0 items-baseline gap-2 border-l border-lineSoft px-3.5 first:border-l-0 first:pl-0">
-      <span className="font-mono text-2xs uppercase tracking-wider text-mute">
-        {instrument.label}
-      </span>
-      <span
-        className={`font-mono text-xs font-semibold tabular-nums ${
-          price === null || price === undefined ? 'text-mute' : 'text-ink'
-        }`}
-        title={
-          quote
-            ? `${instrument.name} · ${quote.source} · ${fmtAge(quote.ts, now)}`
-            : instrument.name
-        }
-      >
-        {fmtNum(price, instrument.decimals)}
-      </span>
-      <span
-        className={`font-mono text-2xs tabular-nums ${
-          up ? 'text-mint' : down ? 'text-danger' : 'text-mute'
-        }`}
-      >
-        {fmtSignedPct(change, 2)}
-      </span>
     </div>
   )
 }
@@ -110,16 +76,16 @@ export function Header({ quotes, status, updatedAt, now }) {
           </span>
         </a>
 
-        {/* Ticker strip — DXY, XAU, XAG, USOIL, BTC in that order */}
-        <div className="scroll-x hidden min-w-0 flex-1 md:block">
-          <div className="flex items-center">
-            {INSTRUMENTS.map((inst) => (
-              <TickerCell key={inst.id} instrument={inst} quote={quotes?.[inst.id]} now={now} />
-            ))}
-          </div>
-        </div>
-
         <div className="ml-auto flex shrink-0 items-center gap-2">
+          {/* UTC session clock — ticks every second alongside the tape. */}
+          <span
+            className="hidden font-mono text-2xs tabular-nums text-dim sm:inline"
+            title="UTC"
+          >
+            {fmtClock(now)}
+            <span className="ml-1 text-mute">UTC</span>
+          </span>
+
           {/*
             No wallet button. This page connects to no chain and holds no keys,
             so a "Connect Wallet" control would be a lie told for decoration.
@@ -146,14 +112,8 @@ export function Header({ quotes, status, updatedAt, now }) {
         </div>
       </div>
 
-      {/* Mobile ticker gets its own row rather than being hidden entirely */}
-      <div className="scroll-x border-t border-lineSoft px-4 py-2 md:hidden">
-        <div className="flex items-center">
-          {INSTRUMENTS.map((inst) => (
-            <TickerCell key={inst.id} instrument={inst} quote={quotes?.[inst.id]} now={now} />
-          ))}
-        </div>
-      </div>
+      {/* The tape runs full width below the nav, at every breakpoint. */}
+      <Ticker quotes={quotes} />
     </motion.header>
   )
 }

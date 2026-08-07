@@ -171,15 +171,38 @@ sedang melaporkan `p` yang terlalu optimistis, bukan peluang luar biasa.
 
 ## 04 · Data pasar langsung
 
-Setiap kandidat sumber diuji CORS-nya sebelum dipilih. Hasilnya, apa adanya:
+Kelima instrumen diambil dari **scanner publik TradingView** dalam satu permintaan — tanpa akun,
+tanpa API key, tanpa server sendiri. Endpoint-nya mengirim header CORS (meng-echo `Origin`
+permintaan), jadi halaman statis bisa memanggilnya langsung.
 
-| Instrumen | Sumber | Langsung di browser | Catatan |
+| Instrumen | Simbol TradingView | Feed | Kecepatan |
 |---|---|:---:|---|
-| **DXY** | Dihitung dari `api.fxratesapi.com` | ✅ | Formula bobot geometrik ICE resmi atas EUR/JPY/GBP/CAD/SEK/CHF |
-| **XAU/USD** | `api.gold-api.com` | ✅ | Emas spot, pembaruan di bawah satu menit |
-| **XAG/USD** | `api.gold-api.com` | ✅ | Perak spot |
-| **USOIL** | Yahoo `CL=F` | ⚠️ | Tidak ada feed CORS gratis — hanya sisi server |
-| **BTC/USD** | Binance `BTCUSDT` | ✅ | Cadangan ke Coinbase bila Binance diblokir wilayah |
+| **DXY** | `TVC:DXY` | streaming | ~10d |
+| **XAU/USD** | `TVC:GOLD` | streaming | ~10d |
+| **XAG/USD** | `TVC:SILVER` | streaming | ~10d |
+| **USOIL** | `NYMEX:CL1!` | tunda 10 menit | ~10d |
+| **BTC/USD** | WebSocket Binance | **push** | **1 detik** |
+
+Bitcoin tambahan pakai WebSocket `miniTicker` Binance yang mendorong frame tiap satu detik dan
+menimpa nilai hasil polling — satu-satunya instrumen dengan stream publik gratis, jadi satu-satunya
+yang benar-benar update tiap 1 detik.
+
+**Satu jebakan CORS yang perlu dicatat.** Preflight scanner cuma mengizinkan `Referer,Accept` di
+`Access-Control-Allow-Headers`, jadi mengirim `Content-Type: application/json` memicu preflight
+yang justru ditolak. Menghilangkan header itu membuat browser memakai default `text/plain` yang
+masuk CORS-safelist sehingga preflight dilewati — dan servernya tetap mem-parse body JSON-nya.
+
+### Rantai cadangan
+
+Endpoint-nya tidak terdokumentasi, jadi kalau bentuknya berubah tiap instrumen jatuh sendiri-sendiri
+ke API publik terdokumentasi yang dipakai sebelumnya, dan kartunya ditandai `CADANGAN`:
+
+| Instrumen | Cadangan |
+|---|---|
+| **DXY** | Dihitung di browser dari `api.fxratesapi.com` via formula ICE |
+| **XAU/USD**, **XAG/USD** | `api.gold-api.com` |
+| **BTC/USD** | Binance REST, lalu Coinbase |
+| **USOIL** | Snapshot Yahoo `CL=F` saat build |
 
 ### DXY dihitung, bukan diproksi
 
@@ -192,12 +215,13 @@ DXY = 50.14348112
 Ini definisi asli indeksnya, bukan pendekatan.
 **Divalidasi saat pengembangan: 99,956 hasil hitung terhadap 99,962 yang dipublikasikan untuk `DX-Y.NYB`.**
 
-### Kenapa minyak berbeda
+### Kenapa minyak tertunda 10 menit
 
-Semua sumber WTI gratis ber-CORS sudah diuji dan gugur:
+Tidak ada feed WTI real-time yang gratis. Semuanya sudah diuji:
 
 | Kandidat | Hasil |
 |---|---|
+| `TVC:USOIL` + 20 ticker CFD broker | Tidak ada di indeks scanner |
 | Yahoo Finance | Menyajikan data, tidak mengirim header CORS |
 | Stooq | Kini dijaga deteksi bot berbasis JavaScript |
 | Proksi allorigins | HTTP 500 |
@@ -205,15 +229,16 @@ Semua sumber WTI gratis ber-CORS sudah diuji dan gugur:
 | gold-api.com | Tidak punya simbol minyak |
 | fxratesapi | Hanya mata uang dan logam |
 
-Jadi minyak diambil dari sisi server lewat salah satu dari dua jalur:
+`NYMEX:CL1!` dengan tunda sepuluh menit adalah batas paling jujur tanpa langganan data pasar
+berbayar. Kartunya menulis **DELAYED 10M**, bukan berpura-pura langsung.
 
-```
-Vercel     →  /api/quotes            proksi serverless, benar-benar langsung
-GH Pages   →  market-cache.json      disisipkan saat build, disegarkan tiap 30 menit
-```
+### Kecepatan polling diukur, bukan ditebak
 
-Klien mencoba fungsi lebih dulu, jatuh ke cache, lalu memberi label **tersimpan** alih-alih
-menyamarkannya sebagai feed tick.
+Scanner-nya disampel tiap dua detik selama setengah menit: nilainya menyegar kira-kira tiap
+**sepuluh detik**. Jadi polling tiap satu detik hanya akan mengembalikan angka yang sama sembilan
+dari sepuluh kali sambil menghabiskan 3.600 permintaan per jam per tab. Polling dijalankan pada
+**5 detik**; crawl pita dan jam UTC berjalan 1 detik secara terpisah, dan tiap sel berkedip hijau
+atau merah hanya saat harganya benar-benar berubah. Polling berhenti total saat tab tidak terlihat.
 
 ### Perubahan harian dikoreksi basis
 
@@ -398,12 +423,14 @@ artefak yang dideploy, bukan di-commit, sehingga jadwal itu tidak pernah menulis
 
 > **Live di → https://xyb3rpunq.github.io/Kelly-Criterion/**
 
-### Vercel *(opsional, data lebih baik)*
+### Vercel *(opsional)*
 
-Impor repositori; [`vercel.json`](vercel.json) mengurus sisanya. Deploy di sini mengaktifkan
-`/api/quotes`, yang memproksi Yahoo dari sisi server dan membuat **USOIL benar-benar langsung**
-alih-alih snapshot 30 menit. Klien mendeteksi endpoint-nya otomatis — tanpa konfigurasi, tanpa
-variabel lingkungan, dan tanpa API key satu pun di proyek ini.
+Impor repositori; [`vercel.json`](vercel.json) mengurus sisanya. Dulu ini satu-satunya cara agar
+minyak mendekati live, tapi sejak lapisan data pindah ke TradingView, build statis di Pages sudah
+mendapat feed yang sama — jadi **Vercel kini murni opsional** dan tidak memberi keunggulan data.
+Fungsi `/api/quotes` tetap ada sebagai cadangan kedua kalau kamu deploy ke sana.
+
+Tidak ada API key satu pun di proyek ini, di target mana pun.
 
 ---
 

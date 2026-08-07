@@ -1,8 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { fetchQuotes, fetchSnapshot } from '../lib/market.js'
+import { fetchQuotes, fetchSnapshot, openBTCStream } from '../lib/market.js'
 
-const POLL_MS = 20000
-const SNAPSHOT_MS = 5 * 60 * 1000
+/*
+ * Poll cadence is set by how often the source actually changes, not by how
+ * often we would like it to. Measured directly: the TradingView scanner
+ * refreshes roughly every ten seconds, so polling it every second would return
+ * an identical number nine times out of ten while burning 3,600 requests an
+ * hour per open tab. Five seconds picks up each refresh promptly without being
+ * abusive to an undocumented public endpoint.
+ *
+ * Bitcoin is the exception — Binance pushes a frame every second over a
+ * WebSocket, so BTC genuinely updates at 1s and overrides the polled value.
+ */
+const POLL_MS = 5000
+const SNAPSHOT_MS = 10 * 60 * 1000
 
 /**
  * Polls the five instruments and keeps the server-side snapshot (reference
@@ -72,12 +83,39 @@ export function useMarketData() {
     }
     document.addEventListener('visibilitychange', onVisible)
 
+    // Bitcoin arrives by push at 1s and supersedes whatever the poll last set.
+    // Merged in place so a dropped socket simply leaves the polled value
+    // standing rather than blanking the instrument.
+    const closeStream = openBTCStream(({ price, changePct, ts }) => {
+      if (!mounted.current) return
+      setQuotes((prev) =>
+        prev
+          ? {
+              ...prev,
+              BTCUSD: {
+                ...prev.BTCUSD,
+                price,
+                changePct: changePct ?? prev.BTCUSD?.changePct ?? null,
+                ts,
+                source: 'Binance stream · 1s',
+                live: true,
+                delayMin: 0,
+                fallback: false,
+                stale: false,
+                error: null,
+              },
+            }
+          : prev,
+      )
+    })
+
     return () => {
       mounted.current = false
       abortRef.current?.abort()
       clearInterval(poll)
       clearInterval(snapPoll)
       document.removeEventListener('visibilitychange', onVisible)
+      closeStream()
     }
   }, [refresh, reloadSnapshot])
 

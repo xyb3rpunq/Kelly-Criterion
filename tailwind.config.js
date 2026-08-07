@@ -78,12 +78,19 @@ export default {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.35' },
         },
+        // Right-to-left tape crawl. -50% because the track is rendered twice,
+        // so the duplicate lands exactly where the original began.
+        tape: {
+          from: { transform: 'translate3d(0,0,0)' },
+          to: { transform: 'translate3d(-50%,0,0)' },
+        },
       },
       animation: {
         'grid-drift': 'grid-drift 18s linear infinite',
         'node-pulse': 'node-pulse 4s ease-in-out infinite',
         scan: 'scan 7s linear infinite',
         'ticker-flick': 'ticker-flick 2.4s ease-in-out infinite',
+        tape: 'tape 42s linear infinite',
       },
     },
   },

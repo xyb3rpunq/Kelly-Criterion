@@ -63,13 +63,21 @@ function InstrumentCard({ instrument, quote, history, selected, onSelect, now, t
           >
             {instrument.label}
           </span>
-          {/* Honesty badge: LIVE only where a browser-side feed genuinely exists. */}
+          {/* Honesty badge. LIVE only for a genuinely streaming feed; a delayed
+              feed states its delay in minutes; a source that had to fall back
+              off the primary says so rather than hiding it. */}
           <span
             className={`font-mono text-[0.6rem] uppercase tracking-wider ${
               quote?.live ? 'text-mint/70' : 'text-amber/80'
             }`}
+            title={instrument.note}
           >
-            {quote?.live ? t.monitor.live : t.monitor.cached}
+            {quote?.live
+              ? t.monitor.live
+              : quote?.delayMin
+                ? t.monitor.delayed(quote.delayMin)
+                : t.monitor.cached}
+            {quote?.fallback && <span className="ml-1 text-chain-lit/70">·{t.monitor.fallback}</span>}
           </span>
         </div>
 

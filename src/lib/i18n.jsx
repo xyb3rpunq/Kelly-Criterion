@@ -29,6 +29,7 @@ const en = {
   header: {
     source: 'Source',
     langLabel: 'Language',
+    tapeLabel: 'Live price tape',
     status: {
       connecting: 'CONNECTING',
       live: 'LIVE',
@@ -63,13 +64,15 @@ const en = {
     title: 'Select the instrument you are sizing',
     live: 'live',
     cached: 'cached',
+    delayed: (m) => (m ? `delayed ${m}m` : 'delayed'),
+    fallback: 'fallback',
     unavailable: 'unavailable',
     snapshot: 'snapshot',
     proxyLive: 'proxy live',
     h24: '24h',
     sourcesLabel: 'Sources.',
     sourcesBody:
-      'DXY is computed in-browser from a live EUR/JPY/GBP/CAD/SEK/CHF basket using the published ICE geometric-weight formula. Gold and silver come from gold-api.com, Bitcoin from Binance. WTI crude has no free CORS-enabled feed, so it is served from a server-side snapshot and labelled cached rather than live. Sparklines show prices observed since this page loaded — not the full trading session.',
+      'All five instruments come from TradingView’s public scanner in a single request, polled every 3 seconds. DXY, gold, silver and Bitcoin are streaming feeds; WTI crude is a 10-minute delayed futures feed, which is the best available without a paid market-data subscription — so it is labelled DELAYED rather than presented as live. If that endpoint fails, each instrument independently falls back to its own documented public API and is marked FALLBACK. Sparklines show prices observed since this page loaded, not the full trading session.',
   },
 
   setup: {
@@ -341,6 +344,7 @@ const id = {
   header: {
     source: 'Kode',
     langLabel: 'Bahasa',
+    tapeLabel: 'Pita harga langsung',
     status: {
       connecting: 'MENYAMBUNG',
       live: 'LANGSUNG',
@@ -375,13 +379,15 @@ const id = {
     title: 'Pilih instrumen yang akan dihitung',
     live: 'langsung',
     cached: 'tersimpan',
+    delayed: (m) => (m ? `tunda ${m}m` : 'tertunda'),
+    fallback: 'cadangan',
     unavailable: 'tidak tersedia',
     snapshot: 'snapshot',
     proxyLive: 'proxy langsung',
     h24: '24j',
     sourcesLabel: 'Sumber data.',
     sourcesBody:
-      'DXY dihitung langsung di browser dari keranjang kurs EUR/JPY/GBP/CAD/SEK/CHF menggunakan formula bobot geometrik ICE yang dipublikasikan. Emas dan perak dari gold-api.com, Bitcoin dari Binance. Minyak WTI tidak punya feed gratis yang mengizinkan CORS, jadi nilainya diambil dari snapshot sisi server dan diberi label tersimpan, bukan langsung. Sparkline menampilkan harga yang teramati sejak halaman ini dibuka — bukan sepanjang sesi perdagangan.',
+      'Kelima instrumen diambil dari scanner publik TradingView dalam satu permintaan, di-polling tiap 3 detik. DXY, emas, perak, dan Bitcoin adalah feed streaming; minyak WTI adalah feed futures dengan penundaan 10 menit — itu yang terbaik yang tersedia tanpa langganan data pasar berbayar, jadi diberi label TERTUNDA, bukan disamarkan sebagai langsung. Bila endpoint itu gagal, tiap instrumen jatuh sendiri-sendiri ke API publik terdokumentasinya masing-masing dan ditandai CADANGAN. Sparkline menampilkan harga yang teramati sejak halaman dibuka, bukan sepanjang sesi perdagangan.',
   },
 
   setup: {

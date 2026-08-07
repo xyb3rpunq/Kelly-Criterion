@@ -170,15 +170,38 @@ always reporting an optimistic `p`, not an exceptional opportunity.
 
 ## 04 · Live market data
 
-Every candidate source was probed for CORS before selection. The results, honestly:
+All five instruments come from **TradingView's public scanner** in a single request — no account,
+no API key, no server of our own. It sends CORS headers (it echoes the request `Origin`), so a
+static page can call it directly.
 
-| Instrument | Source | Live in browser | Notes |
+| Instrument | TradingView symbol | Feed | Cadence |
 |---|---|:---:|---|
-| **DXY** | Computed from `api.fxratesapi.com` | ✅ | Official ICE geometric-weight formula over EUR/JPY/GBP/CAD/SEK/CHF |
-| **XAU/USD** | `api.gold-api.com` | ✅ | Spot gold, sub-minute updates |
-| **XAG/USD** | `api.gold-api.com` | ✅ | Spot silver |
-| **USOIL** | Yahoo `CL=F` | ⚠️ | No free CORS feed exists — server-side only |
-| **BTC/USD** | Binance `BTCUSDT` | ✅ | Falls back to Coinbase where Binance is geo-blocked |
+| **DXY** | `TVC:DXY` | streaming | ~10s |
+| **XAU/USD** | `TVC:GOLD` | streaming | ~10s |
+| **XAG/USD** | `TVC:SILVER` | streaming | ~10s |
+| **USOIL** | `NYMEX:CL1!` | delayed 10 min | ~10s |
+| **BTC/USD** | Binance WebSocket | **push** | **1s** |
+
+Bitcoin additionally runs a Binance `miniTicker` WebSocket, which pushes a frame every second and
+overrides the polled value — the one instrument with a free public stream, so the one instrument
+that genuinely updates at 1s.
+
+**One CORS gotcha worth recording.** The scanner's preflight allows only `Referer,Accept` in
+`Access-Control-Allow-Headers`, so sending `Content-Type: application/json` triggers a preflight
+it then rejects. Omitting the header entirely lets the browser default to `text/plain`, which is
+CORS-safelisted and skips the preflight — and the server parses the JSON body regardless.
+
+### Fallback chain
+
+The scanner is undocumented, so if it changes shape each instrument independently falls back to
+the documented public API it used before, and the card is marked `FALLBACK`:
+
+| Instrument | Fallback |
+|---|---|
+| **DXY** | Computed in-browser from `api.fxratesapi.com` via the ICE formula |
+| **XAU/USD**, **XAG/USD** | `api.gold-api.com` |
+| **BTC/USD** | Binance REST, then Coinbase |
+| **USOIL** | Build-time Yahoo `CL=F` snapshot |
 
 ### DXY is computed, not proxied
 
@@ -191,12 +214,13 @@ DXY = 50.14348112
 This is the index's actual definition, not an approximation.
 **Validated during development: 99.956 computed against 99.962 published for `DX-Y.NYB`.**
 
-### Why crude is different
+### Why crude is 10 minutes delayed
 
-Every free CORS-enabled WTI source was tested and rejected:
+There is no free real-time WTI feed. Everything was tested:
 
 | Candidate | Result |
 |---|---|
+| `TVC:USOIL` + 20 broker CFD tickers | Absent from the scanner index |
 | Yahoo Finance | Serves data, sends no CORS headers |
 | Stooq | Now gated behind JavaScript bot detection |
 | allorigins proxy | HTTP 500 |
@@ -204,15 +228,16 @@ Every free CORS-enabled WTI source was tested and rejected:
 | gold-api.com | No oil symbols |
 | fxratesapi | Currencies and metals only |
 
-So crude is fetched server-side by one of two paths:
+`NYMEX:CL1!` at ten minutes delayed is the honest ceiling without a paid market-data subscription.
+The card says **DELAYED 10M** rather than pretending otherwise.
 
-```
-Vercel     →  /api/quotes            serverless proxy, genuinely live
-GH Pages   →  market-cache.json      baked in at build, refreshed every 30 min
-```
+### Polling cadence is measured, not guessed
 
-The client tries the function first, falls back to the cache, and labels the result **cached**
-rather than dressing it up as a tick feed.
+The scanner was sampled every two seconds for half a minute: it refreshes roughly every **ten
+seconds**. Polling it once per second would therefore return an identical number nine times out of
+ten while burning 3,600 requests an hour per open tab. The poll runs at **5s**; the tape crawl and
+the UTC clock run at 1s independently, and each cell flashes green or red only when its price
+actually changes. Polling pauses entirely while the tab is hidden.
 
 ### Day-change is basis-corrected
 
@@ -397,12 +422,14 @@ repository.
 
 > **Live at → https://xyb3rpunq.github.io/Kelly-Criterion/**
 
-### Vercel *(optional, better data)*
+### Vercel *(optional)*
 
-Import the repository; [`vercel.json`](vercel.json) configures the rest. Deploying here activates
-`/api/quotes`, which proxies Yahoo server-side and makes **USOIL genuinely live** instead of a
-30-minute snapshot. The client detects the endpoint automatically — no configuration, no
-environment variables, no API keys anywhere in this project.
+Import the repository; [`vercel.json`](vercel.json) configures the rest. This used to be the only
+way to get crude anywhere near live, but since the data layer moved to TradingView the static
+Pages build gets the same feeds, so **Vercel is now purely optional** and offers no data
+advantage. The `/api/quotes` function remains as a second fallback if you deploy there.
+
+No API keys exist anywhere in this project, on either target.
 
 ---
 

@@ -15,7 +15,7 @@ dibungkus antarmuka terminal web3, dan ditutup memo risiko institusional yang di
 
 ### **[▸ BUKA TERMINAL LANGSUNG](https://xyb3rpunq.github.io/Kelly-Criterion/)**
 
-**[English](README.md)** · `Bahasa Indonesia`
+**[English](README.md)** · `Bahasa Indonesia` · **[📄 Laporan Implementasi (PDF)](docs/Kelly-Terminal-Implementation-Report.pdf)**
 
 </div>
 

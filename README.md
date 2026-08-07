@@ -15,7 +15,7 @@ wrapped in a web3 terminal interface and closed by an auto-generated institution
 
 ### **[▸ OPEN LIVE TERMINAL](https://xyb3rpunq.github.io/Kelly-Criterion/)**
 
-`English` · **[Bahasa Indonesia](README.id.md)**
+`English` · **[Bahasa Indonesia](README.id.md)** · **[📄 Implementation Report (PDF)](docs/Kelly-Terminal-Implementation-Report.pdf)**
 
 </div>
 

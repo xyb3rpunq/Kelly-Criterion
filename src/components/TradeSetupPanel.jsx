@@ -15,6 +15,9 @@ export function TradeSetupPanel({ setup, onChange, rr, instrumentId, quote, onSy
 
   const stopWrongSide = rr.risk <= 0 && setup.entry !== '' && setup.stop !== ''
   const targetWrongSide = rr.reward <= 0 && setup.entry !== '' && setup.target !== ''
+  // App clamps capital to a floor of 1 so nothing downstream divides by zero;
+  // say so here rather than silently reporting a $1 account.
+  const capitalInvalid = !(Number(setup.capital) > 0)
 
   const livePrice = quote?.price
 
@@ -100,7 +103,12 @@ export function TradeSetupPanel({ setup, onChange, rr, instrumentId, quote, onSy
           step="100"
           min="1"
           suffix="USD"
-          hint={t.setup.capitalHint(fmtUSD(Number(setup.capital) || 0))}
+          invalid={capitalInvalid}
+          hint={
+            capitalInvalid
+              ? t.setup.capitalInvalid
+              : t.setup.capitalHint(fmtUSD(Number(setup.capital)))
+          }
         />
 
         <div className="grid grid-cols-3 gap-2 border-t border-lineSoft pt-4">

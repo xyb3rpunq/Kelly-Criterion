@@ -93,6 +93,7 @@ const en = {
     stopSide: (isBuy) => `Stop must sit ${isBuy ? 'below' : 'above'} entry`,
     targetSide: (isBuy) => `Target must sit ${isBuy ? 'above' : 'below'} entry`,
     capitalHint: (v) => `Sizing is expressed against ${v} of NAV`,
+    capitalInvalid: 'Enter a capital figure above zero',
   },
 
   prob: {
@@ -404,6 +405,7 @@ const id = {
     stopSide: (isBuy) => `Stop harus berada di ${isBuy ? 'bawah' : 'atas'} entry`,
     targetSide: (isBuy) => `Target harus berada di ${isBuy ? 'atas' : 'bawah'} entry`,
     capitalHint: (v) => `Sizing dihitung terhadap NAV sebesar ${v}`,
+    capitalInvalid: 'Masukkan nilai modal di atas nol',
   },
 
   prob: {

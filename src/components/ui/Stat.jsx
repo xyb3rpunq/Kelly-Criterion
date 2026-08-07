@@ -40,9 +40,19 @@ export function AnimatedNumber({ value, format, duration = 420, className = '' }
   const rafRef = useRef(0)
 
   useEffect(() => {
-    if (reduce || !Number.isFinite(value) || !Number.isFinite(fromRef.current)) {
+    const settle = () => {
       fromRef.current = value
       setShown(value)
+    }
+
+    // Skip the tween entirely when it cannot or should not run. document.hidden
+    // matters here: requestAnimationFrame does not fire in a backgrounded tab,
+    // so animating would leave the figure frozen at a stale number until the
+    // user came back. For a position-sizing readout that is not an acceptable
+    // failure mode — showing 0.00% when the answer is 49.25% is worse than
+    // showing it without a transition.
+    if (reduce || !Number.isFinite(value) || !Number.isFinite(fromRef.current) || document.hidden) {
+      settle()
       return undefined
     }
 
@@ -51,6 +61,8 @@ export function AnimatedNumber({ value, format, duration = 420, className = '' }
     if (delta === 0) return undefined
 
     const start = performance.now()
+    let finished = false
+
     const tick = (now) => {
       const t = Math.min(1, (now - start) / duration)
       // easeOutExpo — fast commit, soft settle.
@@ -61,11 +73,25 @@ export function AnimatedNumber({ value, format, duration = 420, className = '' }
       // otherwise the number visibly jumps back before animating forward again.
       fromRef.current = current
       setShown(current)
-      if (t < 1) rafRef.current = requestAnimationFrame(tick)
+      if (t < 1) {
+        rafRef.current = requestAnimationFrame(tick)
+      } else {
+        finished = true
+      }
     }
     rafRef.current = requestAnimationFrame(tick)
 
-    return () => cancelAnimationFrame(rafRef.current)
+    // Safety net for any environment that throttles or drops frames mid-tween
+    // (tab hidden after the animation started, heavily throttled renderer).
+    // The displayed figure must always converge on the real one.
+    const guard = setTimeout(() => {
+      if (!finished) settle()
+    }, duration + 150)
+
+    return () => {
+      cancelAnimationFrame(rafRef.current)
+      clearTimeout(guard)
+    }
   }, [value, duration, reduce])
 
   return <span className={className}>{format(shown)}</span>

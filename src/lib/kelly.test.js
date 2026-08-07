@@ -168,6 +168,62 @@ describe('classifyTier', () => {
   })
 })
 
+// Cases found while auditing the running UI, kept so they cannot regress.
+describe('edge cases from the UI audit', () => {
+  it('survives blank/garbage numeric fields without producing NaN', () => {
+    const rr = computeRR({ entry: '', stop: '', target: '', direction: 'buy' })
+    expect(rr.valid).toBe(false)
+    const k = calculateKelly(0.55, rr.b)
+    expect(k.valid).toBe(false)
+    expect(Number.isFinite(k.f)).toBe(true)
+    expect(k.f).toBe(0)
+
+    const { stats } = runMonteCarlo({ p: 0.55, b: rr.b, fraction: k.f, trades: 20, paths: 5 })
+    expect(Object.values(stats).every((v) => Number.isFinite(v))).toBe(true)
+  })
+
+  it('mirroring a setup around entry preserves risk, reward and b', () => {
+    const entry = 4302.9
+    const long = computeRR({ entry, stop: 4292.14, target: 4324.41, direction: 'buy' })
+    // This is exactly what the direction toggle does in App.jsx.
+    const short = computeRR({
+      entry,
+      stop: 2 * entry - 4292.14,
+      target: 2 * entry - 4324.41,
+      direction: 'sell',
+    })
+    expect(short.risk).toBeCloseTo(long.risk, 9)
+    expect(short.reward).toBeCloseTo(long.reward, 9)
+    expect(short.b).toBeCloseTo(long.b, 9)
+  })
+
+  it('handles an extreme p without exceeding a sane fraction', () => {
+    const k = calculateKelly(0.99, 2)
+    expect(k.f).toBeCloseTo(0.985, 6)
+    expect(k.f).toBeLessThan(1) // never a total-capital bet
+    const ladder = sizingLadder({ f: k.f, capital: 10000, selectedMultiplier: 0.5 })
+    expect(ladder.selectedPct).toBeCloseTo(0.4925, 6)
+    expect(ladder.cappedPct).toBeCloseTo(0.02, 6)
+  })
+
+  it('keeps every stat finite at the boundaries of p', () => {
+    for (const p of [0, 0.0001, 0.5, 0.9999, 1]) {
+      const k = calculateKelly(p, 2)
+      const { stats } = runMonteCarlo({ p, b: 2, fraction: k.f, trades: 60, paths: 8, seed: 5 })
+      const finite = Object.values(stats).every((v) => Number.isFinite(v))
+      expect(finite, `non-finite stat at p=${p}`).toBe(true)
+      expect(stats.probRuin).toBeGreaterThanOrEqual(0)
+      expect(stats.probRuin).toBeLessThanOrEqual(1)
+    }
+  })
+
+  it('treats a zero or negative capital as a floor of one unit, never a divide by zero', () => {
+    const ladder = sizingLadder({ f: 0.2, capital: Math.max(1, 0), selectedMultiplier: 0.5 })
+    expect(Number.isFinite(ladder.cappedDollars)).toBe(true)
+    expect(ladder.full.dollars).toBeCloseTo(0.2)
+  })
+})
+
 describe('sizingLadder', () => {
   it('scales the rungs and converts to dollars', () => {
     const l = sizingLadder({ f: 0.2, capital: 10000, selectedMultiplier: 0.5 })

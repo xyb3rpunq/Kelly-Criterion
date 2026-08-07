@@ -105,6 +105,33 @@ function Terminal() {
     setSetup((s) => defaultSetup(instrument, quote.price, s.capital))
   }, [instrumentId, instrument, quote?.price])
 
+  /**
+   * Flipping buy/sell would otherwise leave the stop and target on the wrong
+   * sides of entry and invalidate the whole setup. Mirroring them around entry
+   * preserves the exact risk and reward distances the user already chose, which
+   * is what "the same idea, other direction" actually means.
+   */
+  const handleSetupChange = useCallback(
+    (next) => {
+      setSetup((prev) => {
+        if (next.direction === prev.direction) return next
+
+        const entry = Number(next.entry)
+        const stop = Number(next.stop)
+        const target = Number(next.target)
+        if (![entry, stop, target].every(Number.isFinite)) return next
+
+        const dp = INSTRUMENT_BY_ID[instrumentId].decimals
+        return {
+          ...next,
+          stop: (2 * entry - stop).toFixed(dp),
+          target: (2 * entry - target).toFixed(dp),
+        }
+      })
+    },
+    [instrumentId],
+  )
+
   const handleSelectInstrument = useCallback((id) => {
     setInstrumentId(id)
     // Force a re-seed of the trade geometry for the newly selected instrument.
@@ -222,7 +249,7 @@ function Terminal() {
             <div className="space-y-4 lg:col-span-5 xl:col-span-4">
               <TradeSetupPanel
                 setup={setup}
-                onChange={setSetup}
+                onChange={handleSetupChange}
                 rr={rr}
                 instrumentId={instrumentId}
                 quote={quote}

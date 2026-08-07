@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.vercel/
+*.local
+.env
+.env.*
+!.env.example
+
+# Regenerated on every dev/build run by scripts/fetch-market.mjs.
+# Keeping it out of git avoids a permanently dirty working tree.
+public/market-cache.json
+
+.DS_Store
+Thumbs.db

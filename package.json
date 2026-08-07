@@ -1,0 +1,31 @@
+{
+  "name": "kelly-terminal",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Kelly Criterion position-sizing terminal for XAU/USD — educational simulator.",
+  "scripts": {
+    "predev": "node scripts/fetch-market.mjs",
+    "dev": "vite",
+    "prebuild": "node scripts/fetch-market.mjs",
+    "build": "vite build",
+    "fetch:market": "node scripts/fetch-market.mjs",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "framer-motion": "^11.15.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^3.10.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.5",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "vite": "^8.2.1",
+    "vitest": "^4.1.10"
+  }
+}

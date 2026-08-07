@@ -1,13 +1,43 @@
 import { motion } from 'framer-motion'
 import { INSTRUMENTS } from '../lib/market.js'
+import { LANGUAGES } from '../lib/i18n.jsx'
+import { useLanguage } from '../hooks/useLanguage.jsx'
 import { fmtNum, fmtSignedPct, fmtAge } from '../lib/format.js'
 import { Pill } from './ui/Stat.jsx'
 
 const STATUS = {
-  connecting: { tone: 'dim', dot: 'bg-mute', text: 'CONNECTING' },
-  live: { tone: 'mint', dot: 'bg-mint', text: 'LIVE' },
-  degraded: { tone: 'amber', dot: 'bg-amber', text: 'PARTIAL' },
-  error: { tone: 'danger', dot: 'bg-danger', text: 'OFFLINE' },
+  connecting: { tone: 'dim', dot: 'bg-mute' },
+  live: { tone: 'mint', dot: 'bg-mint' },
+  degraded: { tone: 'amber', dot: 'bg-amber' },
+  error: { tone: 'danger', dot: 'bg-danger' },
+}
+
+function LanguageSwitch({ lang, setLang, label }) {
+  return (
+    <div
+      role="group"
+      aria-label={label}
+      className="flex overflow-hidden rounded border border-line bg-raise"
+    >
+      {LANGUAGES.map((l) => {
+        const active = l.code === lang
+        return (
+          <button
+            key={l.code}
+            type="button"
+            onClick={() => setLang(l.code)}
+            aria-pressed={active}
+            title={l.name}
+            className={`px-2 py-1 font-mono text-2xs uppercase tracking-wider transition-colors ${
+              active ? 'bg-gold/15 text-gold-lit' : 'text-mute hover:text-ink'
+            }`}
+          >
+            {l.label}
+          </button>
+        )
+      })}
+    </div>
+  )
 }
 
 function TickerCell({ instrument, quote, now }) {
@@ -45,7 +75,9 @@ function TickerCell({ instrument, quote, now }) {
 }
 
 export function Header({ quotes, status, updatedAt, now }) {
+  const { lang, setLang, t } = useLanguage()
   const s = STATUS[status] || STATUS.connecting
+  const statusText = t.header.status[status] || t.header.status.connecting
 
   return (
     <motion.header
@@ -94,24 +126,22 @@ export function Header({ quotes, status, updatedAt, now }) {
             What it does connect to is public price APIs — that is what the
             indicator reports.
           */}
-          <Pill
-            tone={s.tone}
-            title={
-              updatedAt
-                ? `Public market APIs · last refresh ${fmtAge(updatedAt, now)}`
-                : 'Contacting public market APIs'
-            }
-          >
-            <span className={`h-1.5 w-1.5 rounded-full ${s.dot} ${status === 'live' ? 'animate-ticker-flick' : ''}`} />
-            {s.text}
+          <Pill tone={s.tone} title={t.header.statusTitle(updatedAt ? fmtAge(updatedAt, now) : null)}>
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${s.dot} ${status === 'live' ? 'animate-ticker-flick' : ''}`}
+            />
+            {statusText}
           </Pill>
+
+          <LanguageSwitch lang={lang} setLang={setLang} label={t.header.langLabel} />
+
           <a
             href="https://github.com/xyb3rpunq/Kelly-Criterion"
             target="_blank"
             rel="noreferrer noopener"
-            className="hidden rounded border border-line bg-raise px-2.5 py-1 font-mono text-2xs uppercase tracking-wider text-dim transition-colors hover:border-mute/60 hover:text-ink sm:inline-block"
+            className="hidden rounded border border-line bg-raise px-2.5 py-1 font-mono text-2xs uppercase tracking-wider text-dim transition-colors hover:border-mute/60 hover:text-ink lg:inline-block"
           >
-            Source
+            {t.header.source}
           </a>
         </div>
       </div>

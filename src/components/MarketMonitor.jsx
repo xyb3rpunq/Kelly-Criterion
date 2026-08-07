@@ -1,4 +1,5 @@
 import { INSTRUMENTS } from '../lib/market.js'
+import { useT } from '../hooks/useLanguage.jsx'
 import { fmtNum, fmtSignedPct, fmtAge } from '../lib/format.js'
 import { MotionPanel } from './ui/Panel.jsx'
 import { Pill } from './ui/Stat.jsx'
@@ -35,7 +36,7 @@ function Spark({ points, up }) {
   )
 }
 
-function InstrumentCard({ instrument, quote, history, selected, onSelect, now }) {
+function InstrumentCard({ instrument, quote, history, selected, onSelect, now, t }) {
   const price = quote?.price
   const change = quote?.changePct
   const up = Number.isFinite(change) && change >= 0
@@ -68,7 +69,7 @@ function InstrumentCard({ instrument, quote, history, selected, onSelect, now })
               quote?.live ? 'text-mint/70' : 'text-amber/80'
             }`}
           >
-            {quote?.live ? 'live' : 'cached'}
+            {quote?.live ? t.monitor.live : t.monitor.cached}
           </span>
         </div>
 
@@ -85,7 +86,7 @@ function InstrumentCard({ instrument, quote, history, selected, onSelect, now })
             unavailable ? 'text-mute' : up ? 'text-mint' : 'text-danger'
           }`}
         >
-          {fmtSignedPct(change, 2)} <span className="text-mute">24h</span>
+          {fmtSignedPct(change, 2)} <span className="text-mute">{t.monitor.h24}</span>
         </p>
 
         <div className="mt-2 -mx-1">
@@ -93,7 +94,7 @@ function InstrumentCard({ instrument, quote, history, selected, onSelect, now })
         </div>
 
         <p className="mt-1 truncate font-mono text-[0.6rem] text-mute" title={quote?.source}>
-          {unavailable ? 'unavailable' : `${quote?.source} · ${fmtAge(quote?.ts, now)}`}
+          {unavailable ? t.monitor.unavailable : `${quote?.source} · ${fmtAge(quote?.ts, now)}`}
         </p>
       </div>
     </button>
@@ -101,16 +102,17 @@ function InstrumentCard({ instrument, quote, history, selected, onSelect, now })
 }
 
 export function MarketMonitor({ quotes, history, selectedId, onSelect, snapshot, now }) {
+  const t = useT()
   const snapAge = snapshot?.generatedAt ? fmtAge(Date.parse(snapshot.generatedAt), now) : null
 
   return (
     <MotionPanel
       id="monitor"
-      eyebrow="Market monitor · 5 instruments"
-      title="Select the instrument you are sizing"
+      eyebrow={t.monitor.eyebrow}
+      title={t.monitor.title}
       aside={
         <Pill tone={snapshot?.origin === 'api' ? 'mint' : 'dim'}>
-          {snapshot?.origin === 'api' ? 'proxy live' : 'snapshot'}
+          {snapshot?.origin === 'api' ? t.monitor.proxyLive : t.monitor.snapshot}
           {snapAge ? ` · ${snapAge}` : ''}
         </Pill>
       }
@@ -125,18 +127,14 @@ export function MarketMonitor({ quotes, history, selectedId, onSelect, snapshot,
             selected={selectedId === inst.id}
             onSelect={onSelect}
             now={now}
+            t={t}
           />
         ))}
       </div>
 
       <div className="border-t border-lineSoft px-4 py-3">
         <p className="text-2xs leading-relaxed text-mute">
-          <span className="text-dim">Sources.</span> DXY is computed in-browser from a live
-          EUR/JPY/GBP/CAD/SEK/CHF basket using the published ICE geometric-weight formula. Gold and
-          silver come from gold-api.com, Bitcoin from Binance. WTI crude has no free
-          CORS-enabled feed, so it is served from a server-side snapshot and labelled{' '}
-          <span className="text-amber/90">cached</span> rather than live. Sparklines show prices
-          observed since this page loaded — not the full trading session.
+          <span className="text-dim">{t.monitor.sourcesLabel}</span> {t.monitor.sourcesBody}
         </p>
       </div>
     </MotionPanel>

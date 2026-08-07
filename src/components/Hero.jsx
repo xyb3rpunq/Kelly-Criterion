@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { useT } from '../hooks/useLanguage.jsx'
 
 const line = {
   hidden: { opacity: 0, y: 16 },
@@ -6,6 +7,8 @@ const line = {
 }
 
 export function Hero() {
+  const t = useT()
+
   return (
     <motion.section
       id="top"
@@ -15,23 +18,21 @@ export function Hero() {
       className="relative mx-auto max-w-[1400px] px-4 pb-10 pt-14 sm:px-6 sm:pt-20"
     >
       <motion.p variants={line} className="eyebrow mb-5">
-        Position sizing · Kelly Criterion · f* = (p·b − q) / b
+        {t.hero.eyebrow}
       </motion.p>
 
       <motion.h1
         variants={line}
         className="max-w-4xl text-balance font-display text-[2.1rem] font-bold leading-[1.08] tracking-tight sm:text-5xl lg:text-[3.4rem]"
       >
-        This tells you <span className="metal-text">how much</span> to risk.
+        {t.hero.titleLead} <span className="metal-text">{t.hero.titleHow}</span> {t.hero.titleMid}
         <br />
-        It will never tell you <span className="text-chain-lit">which way</span> to trade.
+        {t.hero.titleNever} <span className="text-chain-lit">{t.hero.titleWhich}</span>{' '}
+        {t.hero.titleTrade}
       </motion.h1>
 
       <motion.p variants={line} className="mt-6 max-w-2xl text-[0.95rem] leading-relaxed text-dim">
-        Kelly Terminal converts a trade&apos;s reward-to-risk geometry and your own estimate of its
-        win probability into an optimal fraction of capital — then stress-tests that fraction
-        against thousands of simulated outcomes. Direction, entry timing and whether your edge is
-        real remain entirely your problem.
+        {t.hero.lede}
       </motion.p>
 
       <motion.div variants={line} className="mt-8 flex flex-wrap items-center gap-3">
@@ -39,13 +40,13 @@ export function Hero() {
           href="#calculator"
           className="group relative overflow-hidden rounded border border-gold/45 bg-gold/10 px-5 py-2.5 font-mono text-2xs uppercase tracking-terminal text-gold-lit transition-all duration-200 hover:border-gold/70 hover:bg-gold/[0.16] hover:shadow-glow-gold"
         >
-          <span className="relative z-10">Open calculator ↓</span>
+          <span className="relative z-10">{t.hero.ctaCalc}</span>
         </a>
         <a
           href="#memo"
           className="rounded border border-line bg-raise px-5 py-2.5 font-mono text-2xs uppercase tracking-terminal text-dim transition-colors hover:border-chain/50 hover:text-chain-lit"
         >
-          Jump to risk memo
+          {t.hero.ctaMemo}
         </a>
       </motion.div>
 
@@ -53,18 +54,11 @@ export function Hero() {
         variants={line}
         className="mt-10 flex flex-wrap gap-x-8 gap-y-3 border-t border-lineSoft pt-6 font-mono text-2xs text-mute"
       >
-        <span>
-          <span className="text-dim">5</span> instruments monitored
-        </span>
-        <span>
-          <span className="text-dim">Monte Carlo</span> re-runs on every input change
-        </span>
-        <span>
-          <span className="text-dim">p</span> is your assumption, not a forecast
-        </span>
-        <span>
-          <span className="text-dim">Educational</span> tool — not financial advice
-        </span>
+        {t.hero.facts.map(([lead, rest]) => (
+          <span key={lead}>
+            <span className="text-dim">{lead}</span> {rest}
+          </span>
+        ))}
       </motion.div>
     </motion.section>
   )

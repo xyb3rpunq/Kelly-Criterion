@@ -1,48 +1,49 @@
 import { INSTRUMENT_BY_ID } from '../lib/market.js'
+import { useT } from '../hooks/useLanguage.jsx'
 import { fmtNum, fmtUSD } from '../lib/format.js'
 import { MotionPanel } from './ui/Panel.jsx'
 import { NumberField, Segmented } from './ui/Field.jsx'
 import { Pill } from './ui/Stat.jsx'
 
 export function TradeSetupPanel({ setup, onChange, rr, instrumentId, quote, onSyncPrice }) {
+  const t = useT()
   const inst = INSTRUMENT_BY_ID[instrumentId]
   const dp = inst.decimals
+  const isBuy = setup.direction === 'buy'
 
   const set = (key) => (value) => onChange({ ...setup, [key]: value })
 
-  const stopWrongSide =
-    rr.risk <= 0 && setup.entry !== '' && setup.stop !== ''
-  const targetWrongSide =
-    rr.reward <= 0 && setup.entry !== '' && setup.target !== ''
+  const stopWrongSide = rr.risk <= 0 && setup.entry !== '' && setup.stop !== ''
+  const targetWrongSide = rr.reward <= 0 && setup.entry !== '' && setup.target !== ''
 
   const livePrice = quote?.price
 
   return (
     <MotionPanel
-      eyebrow="Step 01 · Trade geometry"
-      title="Trade setup"
+      eyebrow={t.setup.eyebrow}
+      title={t.setup.title}
       aside={
         <Pill tone={rr.valid ? 'gold' : 'danger'}>
-          {rr.valid ? `R:R  1 : ${rr.b.toFixed(2)}` : 'invalid'}
+          {rr.valid ? `R:R  1 : ${rr.b.toFixed(2)}` : t.setup.invalid}
         </Pill>
       }
     >
       <div className="space-y-4 p-4">
         <Segmented
-          label="Direction"
+          label={t.setup.direction}
           name="direction"
           value={setup.direction}
           onChange={set('direction')}
           options={[
-            { value: 'buy', label: 'Buy / Long' },
-            { value: 'sell', label: 'Sell / Short' },
+            { value: 'buy', label: t.setup.buy },
+            { value: 'sell', label: t.setup.sell },
           ]}
         />
 
         <div>
           <div className="mb-1.5 flex items-end justify-between gap-2">
             <span className="font-mono text-2xs uppercase tracking-terminal text-mute">
-              Instrument
+              {t.setup.instrument}
             </span>
             <button
               type="button"
@@ -50,7 +51,7 @@ export function TradeSetupPanel({ setup, onChange, rr, instrumentId, quote, onSy
               disabled={!Number.isFinite(livePrice)}
               className="rounded border border-line bg-raise px-2 py-0.5 font-mono text-[0.6rem] uppercase tracking-wider text-dim transition-colors hover:border-chain/50 hover:text-chain-lit disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Sync entry to market
+              {t.setup.sync}
             </button>
           </div>
           <div className="flex items-baseline justify-between rounded border border-line bg-raise px-3 py-2.5">
@@ -62,7 +63,7 @@ export function TradeSetupPanel({ setup, onChange, rr, instrumentId, quote, onSy
         </div>
 
         <NumberField
-          label="Entry price"
+          label={t.setup.entry}
           value={setup.entry}
           onChange={set('entry')}
           step={Math.pow(10, -dp).toFixed(dp)}
@@ -71,53 +72,49 @@ export function TradeSetupPanel({ setup, onChange, rr, instrumentId, quote, onSy
 
         <div className="grid grid-cols-2 gap-3">
           <NumberField
-            label="Stop loss"
+            label={t.setup.stop}
             value={setup.stop}
             onChange={set('stop')}
             step={Math.pow(10, -dp).toFixed(dp)}
             invalid={stopWrongSide}
-            hint={
-              stopWrongSide
-                ? `Stop must sit ${setup.direction === 'buy' ? 'below' : 'above'} entry`
-                : `Risk ${fmtNum(rr.risk, dp)}`
-            }
+            hint={stopWrongSide ? t.setup.stopSide(isBuy) : t.setup.riskHint(fmtNum(rr.risk, dp))}
           />
           <NumberField
-            label="Take profit"
+            label={t.setup.target}
             value={setup.target}
             onChange={set('target')}
             step={Math.pow(10, -dp).toFixed(dp)}
             invalid={targetWrongSide}
             hint={
               targetWrongSide
-                ? `Target must sit ${setup.direction === 'buy' ? 'above' : 'below'} entry`
-                : `Reward ${fmtNum(rr.reward, dp)}`
+                ? t.setup.targetSide(isBuy)
+                : t.setup.rewardHint(fmtNum(rr.reward, dp))
             }
           />
         </div>
 
         <NumberField
-          label="Account capital"
+          label={t.setup.capital}
           value={setup.capital}
           onChange={set('capital')}
           step="100"
           min="1"
           suffix="USD"
-          hint={`Sizing is expressed against ${fmtUSD(Number(setup.capital) || 0)} of NAV`}
+          hint={t.setup.capitalHint(fmtUSD(Number(setup.capital) || 0))}
         />
 
         <div className="grid grid-cols-3 gap-2 border-t border-lineSoft pt-4">
           <div>
-            <p className="eyebrow mb-1">Risk / unit</p>
+            <p className="eyebrow mb-1">{t.setup.riskUnit}</p>
             <p className="font-mono text-sm text-ink">{fmtNum(rr.risk, dp)}</p>
           </div>
           <div>
-            <p className="eyebrow mb-1">Reward / unit</p>
+            <p className="eyebrow mb-1">{t.setup.rewardUnit}</p>
             <p className="font-mono text-sm text-ink">{fmtNum(rr.reward, dp)}</p>
           </div>
           <div>
             <p className="eyebrow mb-1">
-              b <span className="normal-case tracking-normal">(net odds)</span>
+              b <span className="normal-case tracking-normal">({t.setup.netOdds})</span>
             </p>
             <p className="font-mono text-sm text-gold-lit">{rr.valid ? rr.b.toFixed(3) : '—'}</p>
           </div>

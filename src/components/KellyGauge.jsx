@@ -1,5 +1,6 @@
 import { useId, useMemo } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
+import { useT } from '../hooks/useLanguage.jsx'
 import { fmtPct, fmtUSD } from '../lib/format.js'
 import { MotionPanel } from './ui/Panel.jsx'
 import { AnimatedNumber, Pill } from './ui/Stat.jsx'
@@ -26,10 +27,10 @@ const CY = 150
 const R = 112
 
 const ZONES = [
-  { from: 0, to: 0.05, color: '#00E5C7', label: 'Conservative' },
-  { from: 0.05, to: 0.15, color: '#D4AF37', label: 'Optimal band' },
-  { from: 0.15, to: 0.25, color: '#FFB020', label: 'Aggressive' },
-  { from: 0.25, to: MAX, color: '#FF4D6D', label: "Gambler's ruin" },
+  { from: 0, to: 0.05, color: '#00E5C7' },
+  { from: 0.05, to: 0.15, color: '#D4AF37' },
+  { from: 0.15, to: 0.25, color: '#FFB020' },
+  { from: 0.25, to: MAX, color: '#FF4D6D' },
 ]
 
 const clamp01 = (v) => Math.min(1, Math.max(0, v))
@@ -81,8 +82,10 @@ function Notch({ f, label, dim }) {
 }
 
 export function KellyGauge({ kelly, ladder, tier, fractionKey, capital, riskPerTradeUSD }) {
+  const t = useT()
   const uid = useId().replace(/:/g, '')
   const reduce = useReducedMotion()
+  const tierLabel = t.tiers[tier.id].label
 
   const applied = ladder.selectedPct
   const angle = toAngle(applied)
@@ -107,14 +110,23 @@ export function KellyGauge({ kelly, ladder, tier, fractionKey, capital, riskPerT
   return (
     <MotionPanel
       id="gauge"
-      eyebrow="Step 03 · Optimal fraction"
-      title="Kelly gauge"
+      eyebrow={t.gauge.eyebrow}
+      title={t.gauge.title}
       tone="gold"
-      aside={<Pill tone={tone}>{fractionKey} kelly</Pill>}
+      aside={
+        <Pill tone={tone}>
+          {t.prob[fractionKey]} {t.gauge.kellySuffix}
+        </Pill>
+      }
     >
       <div className="p-4">
         <div className="relative mx-auto w-full max-w-[340px]">
-          <svg viewBox="0 0 320 250" className="w-full" role="img" aria-label={`Applied Kelly fraction ${fmtPct(applied)} of capital. Risk tier: ${tier.label}.`}>
+          <svg
+            viewBox="0 0 320 250"
+            className="w-full"
+            role="img"
+            aria-label={t.a11y.gauge(fmtPct(applied), tierLabel)}
+          >
             <defs>
               <linearGradient id={`arc-${uid}`} x1="0" y1="1" x2="1" y2="0">
                 <stop offset="0%" stopColor="#6E5BFF" />
@@ -173,7 +185,7 @@ export function KellyGauge({ kelly, ladder, tier, fractionKey, capital, riskPerT
             <g strokeLinecap="butt" fill="none">
               {ZONES.map((z) => (
                 <path
-                  key={z.label}
+                  key={z.from}
                   d={arcPath(R, toAngle(z.from), toAngle(z.to))}
                   stroke={z.color}
                   strokeWidth="3"
@@ -248,24 +260,24 @@ export function KellyGauge({ kelly, ladder, tier, fractionKey, capital, riskPerT
           {/* Centre readout, overlaid rather than drawn in SVG so it inherits
               real text rendering and stays selectable. */}
           <div className="pointer-events-none absolute inset-x-0 top-[38%] flex -translate-y-1/2 flex-col items-center">
-            <p className="eyebrow mb-1.5">f* applied</p>
+            <p className="eyebrow mb-1.5">{t.gauge.fApplied}</p>
             <p className="font-mono text-[2.6rem] font-bold leading-none text-gold-lit">
               <AnimatedNumber value={applied * 100} format={(v) => `${v.toFixed(2)}%`} />
             </p>
-            <p className="mt-1 font-mono text-2xs text-mute">of NAV per trade</p>
+            <p className="mt-1 font-mono text-2xs text-mute">{t.gauge.ofNav}</p>
             <p className="mt-3 font-mono text-base font-semibold text-ink">
               <AnimatedNumber value={riskPerTradeUSD} format={(v) => fmtUSD(v, 0)} />
             </p>
-            <p className="font-mono text-[0.6rem] text-mute">at risk</p>
+            <p className="font-mono text-[0.6rem] text-mute">{t.gauge.atRisk}</p>
           </div>
         </div>
 
         {/* Zone legend */}
         <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 border-t border-lineSoft pt-4 sm:grid-cols-4">
-          {ZONES.map((z) => {
+          {ZONES.map((z, zi) => {
             const active = applied >= z.from && (applied < z.to || (z.to === MAX && applied >= MAX))
             return (
-              <div key={z.label} className="flex items-center gap-2">
+              <div key={z.from} className="flex items-center gap-2">
                 <span
                   className="h-2 w-2 shrink-0 rounded-sm"
                   style={{
@@ -279,7 +291,7 @@ export function KellyGauge({ kelly, ladder, tier, fractionKey, capital, riskPerT
                     active ? 'text-ink' : 'text-mute'
                   }`}
                 >
-                  {z.label}
+                  {t.gauge.zones[zi]}
                 </span>
               </div>
             )
@@ -289,19 +301,19 @@ export function KellyGauge({ kelly, ladder, tier, fractionKey, capital, riskPerT
         {/* Sizing ladder */}
         <dl className="mt-4 grid grid-cols-3 gap-2 border-t border-lineSoft pt-4">
           {[
-            ['Full', ladder.full],
-            ['Half', ladder.half],
-            ['Quarter', ladder.quarter],
-          ].map(([label, rung]) => {
-            const isSel = label.toLowerCase() === fractionKey
+            ['full', ladder.full],
+            ['half', ladder.half],
+            ['quarter', ladder.quarter],
+          ].map(([key, rung]) => {
+            const isSel = key === fractionKey
             return (
               <div
-                key={label}
+                key={key}
                 className={`rounded border px-2.5 py-2 transition-colors ${
                   isSel ? 'border-gold/40 bg-gold/[0.07]' : 'border-line bg-raise/50'
                 }`}
               >
-                <dt className="eyebrow mb-1">{label}</dt>
+                <dt className="eyebrow mb-1">{t.gauge[key]}</dt>
                 <dd className={`font-mono text-sm ${isSel ? 'text-gold-lit' : 'text-dim'}`}>
                   {fmtPct(rung.pct, 2)}
                 </dd>
@@ -313,17 +325,21 @@ export function KellyGauge({ kelly, ladder, tier, fractionKey, capital, riskPerT
 
         {ladder.houseCapBinds && (
           <p className="mt-3 border-l-2 border-amber/60 bg-amber/[0.05] px-3 py-2 text-2xs leading-relaxed text-dim">
-            <span className="font-mono uppercase tracking-wider text-amber">Cap binds.</span> The
-            model asks for {fmtPct(ladder.selectedPct, 2)} of NAV. A conventional 2% per-trade house
-            limit would cut the working size to {fmtPct(ladder.cappedPct, 2)} (
-            {fmtUSD(ladder.cappedDollars, 0)} on {fmtUSD(capital, 0)}).
+            <span className="font-mono uppercase tracking-wider text-amber">
+              {t.gauge.capBindsLabel}
+            </span>{' '}
+            {t.gauge.capBinds(
+              fmtPct(ladder.selectedPct, 2),
+              fmtPct(ladder.cappedPct, 2),
+              fmtUSD(ladder.cappedDollars, 0),
+              fmtUSD(capital, 0),
+            )}
           </p>
         )}
 
         {!kelly.valid && (
           <p className="mt-3 border-l-2 border-danger/60 bg-danger/[0.05] px-3 py-2 text-2xs text-dim">
-            Trade geometry is incomplete — enter an entry, stop and target that sit on the correct
-            sides of each other.
+            {t.gauge.invalidGeometry}
           </p>
         )}
       </div>

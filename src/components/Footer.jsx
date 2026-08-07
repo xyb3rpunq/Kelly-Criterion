@@ -1,7 +1,11 @@
 import { INSTRUMENTS } from '../lib/market.js'
+import { useT } from '../hooks/useLanguage.jsx'
 
 export function Footer({ snapshot }) {
-  const built = snapshot?.generatedAt ? new Date(snapshot.generatedAt).toISOString().slice(0, 16).replace('T', ' ') : null
+  const t = useT()
+  const built = snapshot?.generatedAt
+    ? new Date(snapshot.generatedAt).toISOString().slice(0, 16).replace('T', ' ')
+    : null
 
   return (
     <footer className="relative z-10 mt-16 border-t border-line bg-panel/40">
@@ -11,19 +15,14 @@ export function Footer({ snapshot }) {
             <p className="font-display text-sm font-bold tracking-[0.14em] text-ink">
               KELLY<span className="text-gold">&nbsp;TERMINAL</span>
             </p>
-            <p className="mt-3 max-w-md text-2xs leading-relaxed text-mute">
-              An educational position-sizing simulator built around the Kelly criterion. It computes
-              how much to risk given a reward-to-risk structure and an assumed win rate. It does not
-              predict direction, does not generate signals, and has no opinion on whether any trade
-              should be taken.
-            </p>
+            <p className="mt-3 max-w-md text-2xs leading-relaxed text-mute">{t.footer.blurb}</p>
             <p className="mt-4 font-mono text-[0.6rem] uppercase tracking-wider text-mute">
-              Not financial advice · No affiliation with any financial institution
+              {t.footer.notAdvice}
             </p>
           </div>
 
           <div>
-            <p className="eyebrow mb-3">Data sources</p>
+            <p className="eyebrow mb-3">{t.footer.dataSources}</p>
             <ul className="space-y-1.5 font-mono text-[0.6rem] text-mute">
               {INSTRUMENTS.map((i) => (
                 <li key={i.id} className="flex justify-between gap-3">
@@ -33,12 +32,12 @@ export function Footer({ snapshot }) {
               ))}
             </ul>
             {built && (
-              <p className="mt-3 font-mono text-[0.6rem] text-mute">Snapshot {built} UTC</p>
+              <p className="mt-3 font-mono text-[0.6rem] text-mute">{t.footer.snapshotAt(built)}</p>
             )}
           </div>
 
           <div>
-            <p className="eyebrow mb-3">Project</p>
+            <p className="eyebrow mb-3">{t.footer.project}</p>
             <ul className="space-y-2 font-mono text-2xs">
               <li>
                 <a
@@ -47,7 +46,7 @@ export function Footer({ snapshot }) {
                   rel="noreferrer noopener"
                   className="text-dim transition-colors hover:text-gold-lit"
                 >
-                  Repository ↗
+                  {t.footer.repo} ↗
                 </a>
               </li>
               <li>
@@ -57,7 +56,7 @@ export function Footer({ snapshot }) {
                   rel="noreferrer noopener"
                   className="text-dim transition-colors hover:text-gold-lit"
                 >
-                  Read the maths ↗
+                  {t.footer.maths} ↗
                 </a>
               </li>
               <li>
@@ -67,7 +66,7 @@ export function Footer({ snapshot }) {
                   rel="noreferrer noopener"
                   className="text-dim transition-colors hover:text-gold-lit"
                 >
-                  Report an issue ↗
+                  {t.footer.issues} ↗
                 </a>
               </li>
             </ul>
@@ -76,7 +75,7 @@ export function Footer({ snapshot }) {
 
         <div className="mt-9 flex flex-wrap items-center justify-between gap-3 border-t border-lineSoft pt-5">
           <p className="font-mono text-[0.6rem] text-mute">
-            © {new Date().getFullYear()} xyb3rpunq · MIT licence · Open source
+            {t.footer.rights(new Date().getFullYear())}
           </p>
           <p className="font-mono text-[0.6rem] text-mute">
             f* = (p·b − q) / b

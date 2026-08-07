@@ -9,11 +9,12 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts'
+import { useT } from '../hooks/useLanguage.jsx'
 import { fmtUSD, fmtUSDCompact, fmtPct } from '../lib/format.js'
 import { MotionPanel } from './ui/Panel.jsx'
 import { Stat, Pill } from './ui/Stat.jsx'
 
-function ChartTooltip({ active, payload, label, capital }) {
+function ChartTooltip({ active, payload, label, capital, t }) {
   if (!active || !payload?.length) return null
   const med = payload.find((p) => p.dataKey === 'median')?.value
   if (!Number.isFinite(med)) return null
@@ -21,19 +22,18 @@ function ChartTooltip({ active, payload, label, capital }) {
   const delta = (med - capital) / capital
   return (
     <div className="hairline hairline-mute rounded bg-panel/95 px-3 py-2 backdrop-blur">
-      <p className="relative z-10 font-mono text-2xs text-mute">Trade {label}</p>
+      <p className="relative z-10 font-mono text-2xs text-mute">{t.mc.tooltipTrade(label)}</p>
       <p className="relative z-10 font-mono text-sm font-semibold text-gold-lit">{fmtUSD(med, 0)}</p>
-      <p
-        className={`relative z-10 font-mono text-2xs ${delta >= 0 ? 'text-mint' : 'text-danger'}`}
-      >
+      <p className={`relative z-10 font-mono text-2xs ${delta >= 0 ? 'text-mint' : 'text-danger'}`}>
         {delta >= 0 ? '+' : ''}
-        {(delta * 100).toFixed(1)}% median
+        {(delta * 100).toFixed(1)}% {t.mc.tooltipMedian}
       </p>
     </div>
   )
 }
 
 export function MonteCarloChart({ sim, capital, trades, onReroll, seed, fractionKey, busy }) {
+  const t = useT()
   const { series, median, stats } = sim
 
   // Recharts wants row-per-x. Path keys are stable across re-rolls so lines are
@@ -97,19 +97,19 @@ export function MonteCarloChart({ sim, capital, trades, onReroll, seed, fraction
   return (
     <MotionPanel
       id="simulation"
-      eyebrow="Step 04 · Path simulation"
-      title={`Monte Carlo · ${series.length} paths × ${trades} trades`}
+      eyebrow={t.mc.eyebrow}
+      title={t.mc.title(series.length, trades)}
       aside={
         <div className="flex items-center gap-2">
-          <Pill tone="dim" title="Seed for the pseudo-random draw — same seed, same paths.">
-            seed {seed}
+          <Pill tone="dim" title={t.mc.seedTitle}>
+            {t.mc.seed} {seed}
           </Pill>
           <button
             type="button"
             onClick={onReroll}
             className="rounded border border-chain/40 bg-chain/10 px-2.5 py-1 font-mono text-2xs uppercase tracking-wider text-chain-lit transition-all hover:border-chain/70 hover:shadow-glow-chain"
           >
-            Re-roll
+            {t.mc.reroll}
           </button>
         </div>
       }
@@ -142,7 +142,7 @@ export function MonteCarloChart({ sim, capital, trades, onReroll, seed, fraction
                 width={54}
               />
               <Tooltip
-                content={<ChartTooltip capital={capital} />}
+                content={<ChartTooltip capital={capital} t={t} />}
                 cursor={{ stroke: '#6E5BFF', strokeWidth: 1, strokeDasharray: '3 3' }}
               />
 
@@ -168,7 +168,7 @@ export function MonteCarloChart({ sim, capital, trades, onReroll, seed, fraction
                 strokeDasharray="4 4"
                 strokeWidth={1}
                 label={{
-                  value: 'start',
+                  value: t.mc.start,
                   position: 'insideTopLeft',
                   fill: '#8B94A8',
                   fontSize: 9,
@@ -181,7 +181,7 @@ export function MonteCarloChart({ sim, capital, trades, onReroll, seed, fraction
                 strokeDasharray="4 4"
                 strokeWidth={1}
                 label={{
-                  value: 'ruin −50%',
+                  value: t.mc.ruin,
                   position: 'insideBottomLeft',
                   fill: '#FF4D6D',
                   fontSize: 9,
@@ -203,39 +203,34 @@ export function MonteCarloChart({ sim, capital, trades, onReroll, seed, fraction
         </div>
 
         <p className="mt-2 font-mono text-[0.6rem] text-mute">
-          <span className="text-gold">▬</span> median across paths ·{' '}
-          <span className="text-chain">▬</span> individual simulated paths · applied sizing:{' '}
-          {fractionKey} Kelly ·{' '}
+          <span className="text-gold">▬</span> {t.mc.legendMedian} ·{' '}
+          <span className="text-chain">▬</span> {t.mc.legendPaths} ·{' '}
+          {t.mc.legendSizing(t.prob[fractionKey].toLowerCase())} ·{' '}
           <span className={useLog ? 'text-amber' : ''}>
-            {useLog ? 'log₁₀ equity axis' : 'linear equity axis'}
+            {useLog ? t.mc.logAxis : t.mc.linearAxis}
           </span>
         </p>
 
         <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 border-t border-lineSoft pt-4 sm:grid-cols-3 lg:grid-cols-6">
-          <Stat label="Median final" value={fmtUSD(stats.medianFinal, 0)} tone="gold" size="sm" />
-          <Stat label="Best path" value={fmtUSD(stats.best, 0)} tone="mint" size="sm" />
-          <Stat label="Worst path" value={fmtUSD(stats.worst, 0)} tone="danger" size="sm" />
+          <Stat label={t.mc.medianFinal} value={fmtUSD(stats.medianFinal, 0)} tone="gold" size="sm" />
+          <Stat label={t.mc.best} value={fmtUSD(stats.best, 0)} tone="mint" size="sm" />
+          <Stat label={t.mc.worst} value={fmtUSD(stats.worst, 0)} tone="danger" size="sm" />
           <Stat
-            label="P(profit)"
+            label={t.mc.pProfit}
             value={fmtPct(stats.probProfit, 0)}
             tone={stats.probProfit >= 0.5 ? 'mint' : 'amber'}
             size="sm"
           />
-          <Stat label="P(ruin)" value={fmtPct(stats.probRuin, 0)} tone={ruinTone} size="sm" />
+          <Stat label={t.mc.pRuin} value={fmtPct(stats.probRuin, 0)} tone={ruinTone} size="sm" />
           <Stat
-            label="Avg max DD"
+            label={t.mc.avgDD}
             value={fmtPct(stats.avgMaxDrawdown, 0)}
             tone={stats.avgMaxDrawdown > 0.35 ? 'danger' : 'dim'}
             size="sm"
           />
         </div>
 
-        <p className="mt-4 text-2xs leading-relaxed text-mute">
-          Each path compounds a fixed fraction of <em className="not-italic text-dim">current</em>{' '}
-          equity over {trades} independent trades drawn at the assumed win rate. A path that reaches
-          the ruin line stops trading rather than being allowed to recover, which is how a real risk
-          limit behaves. Independence is an assumption of the model, not a property of markets.
-        </p>
+        <p className="mt-4 text-2xs leading-relaxed text-mute">{t.mc.note(trades)}</p>
       </div>
     </MotionPanel>
   )

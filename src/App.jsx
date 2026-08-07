@@ -13,6 +13,7 @@ import {
 import { INSTRUMENT_BY_ID } from './lib/market.js'
 import { useMarketData } from './hooks/useMarketData.js'
 import { useDebouncedValue } from './hooks/useDebouncedValue.js'
+import { LanguageProvider, useT } from './hooks/useLanguage.jsx'
 
 import { BackgroundGrid } from './components/BackgroundGrid.jsx'
 import { Header } from './components/Header.jsx'
@@ -46,6 +47,15 @@ function defaultSetup(instrument, price, capital = '10000') {
 }
 
 export default function App() {
+  return (
+    <LanguageProvider>
+      <Terminal />
+    </LanguageProvider>
+  )
+}
+
+function Terminal() {
+  const t = useT()
   const { quotes, snapshot, status, updatedAt } = useMarketData()
 
   const [instrumentId, setInstrumentId] = useState('XAUUSD')
@@ -183,7 +193,7 @@ export default function App() {
         href="#calculator"
         className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded focus:border focus:border-gold/50 focus:bg-panel focus:px-4 focus:py-2 focus:font-mono focus:text-2xs focus:text-gold-lit"
       >
-        Skip to calculator
+        {t.a11y.skip}
       </a>
 
       <Header quotes={quotes} status={status} updatedAt={updatedAt} now={now} />

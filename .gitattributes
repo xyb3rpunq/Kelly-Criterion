@@ -1,0 +1,25 @@
+# Normalise line endings for text so the repo is consistent regardless of the
+# contributor's platform, and check out native endings on Windows.
+* text=auto
+
+# Never let line-ending conversion touch binaries. Git's content detection
+# usually catches these on its own, but relying on autodetection to protect a
+# PDF is one bad heuristic away from a corrupted file in history.
+*.pdf   binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.webp  binary
+*.ico   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+
+# Keep shell scripts LF so they stay executable on CI runners.
+*.sh    text eol=lf
+*.mjs   text eol=lf
+
+# Collapse generated noise in diffs and language stats.
+package-lock.json linguist-generated=true -diff

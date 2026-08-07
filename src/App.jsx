@@ -11,8 +11,11 @@ import {
   FRACTION_PRESETS,
 } from './lib/kelly.js'
 import { INSTRUMENT_BY_ID } from './lib/market.js'
+import { posterior, bayesianKelly } from './lib/bayes.js'
+import { journalStats } from './lib/journal.js'
 import { useMarketData } from './hooks/useMarketData.js'
 import { useDebouncedValue } from './hooks/useDebouncedValue.js'
+import { useJournal } from './hooks/useJournal.js'
 import { LanguageProvider, useT } from './hooks/useLanguage.jsx'
 
 import { BackgroundGrid } from './components/BackgroundGrid.jsx'
@@ -23,6 +26,8 @@ import { TradeSetupPanel } from './components/TradeSetupPanel.jsx'
 import { ProbabilityPanel } from './components/ProbabilityPanel.jsx'
 import { KellyGauge } from './components/KellyGauge.jsx'
 import { MonteCarloChart } from './components/MonteCarloChart.jsx'
+import { JournalPanel } from './components/JournalPanel.jsx'
+import { BayesPanel } from './components/BayesPanel.jsx'
 import { ConclusionPanel } from './components/ConclusionPanel.jsx'
 import { Footer } from './components/Footer.jsx'
 
@@ -212,6 +217,37 @@ function Terminal() {
 
   const reroll = useCallback(() => setSeed(Math.floor(Math.random() * 2 ** 31)), [])
 
+  // --- Journal and the posterior it supports ---
+  const journal = useJournal()
+  const [journalScope, setJournalScope] = useState('all')
+
+  const journalFilter = journalScope === 'instrument' ? instrumentId : null
+  const jStats = useMemo(
+    () => journalStats(journal.entries, journalFilter),
+    [journal.entries, journalFilter],
+  )
+
+  /**
+   * The slider is the prior; logged outcomes are the evidence. With an empty
+   * journal this collapses to the slider value, so the panel degrades to
+   * "your opinion, drawn as a distribution" rather than breaking.
+   */
+  const post = useMemo(
+    () => posterior({ p0: p, wins: jStats.wins, losses: jStats.losses }),
+    [p, jStats.wins, jStats.losses],
+  )
+
+  const bk = useMemo(
+    () => bayesianKelly({ alpha: post.alpha, beta: post.beta, b: rr.b }),
+    [post.alpha, post.beta, rr.b],
+  )
+
+  // Setting the slider rather than silently overriding it: the user stays the
+  // author of the assumption, they just get to accept the measured one.
+  const adoptMeasuredP = useCallback(() => {
+    if (Number.isFinite(bk.pMean)) setP(Math.min(0.99, Math.max(0.01, bk.pMean)))
+  }, [bk.pMean])
+
   return (
     <>
       <BackgroundGrid />
@@ -263,6 +299,16 @@ function Terminal() {
                 kelly={kelly}
                 breakEvenP={kelly.breakEvenP}
               />
+              <JournalPanel
+                entries={journal.entries}
+                onAdd={journal.add}
+                onRemove={journal.remove}
+                onClear={journal.clear}
+                onMerge={journal.merge}
+                instrumentId={instrumentId}
+                scope={journalScope}
+                onScope={setJournalScope}
+              />
             </div>
 
             <div className="space-y-4 lg:col-span-7 xl:col-span-8">
@@ -273,6 +319,14 @@ function Terminal() {
                 fractionKey={fractionKey}
                 capital={capital}
                 riskPerTradeUSD={ladder.selectedPct * capital}
+              />
+              <BayesPanel
+                post={post}
+                bk={bk}
+                capital={capital}
+                multiplier={multiplier}
+                hasEdgeData={jStats.decided > 0}
+                onAdoptP={adoptMeasuredP}
               />
               <MonteCarloChart
                 sim={sim}

@@ -247,6 +247,58 @@ percentage shown. The build script rescales the previous close into spot terms b
 
 ---
 
+## 04b · Closing the loop on `p`
+
+Everything this tool computes rests on a win probability the user guessed. The journal and the
+posterior exist to retire that guess.
+
+**Trade journal.** Log each result as its realised **R-multiple** — `+2.4` means the trade returned
+2.4× what was risked, `−1.6` means the stop slipped through. R is the right unit because it is
+scale-free and because it is literally what `b` is made of. From that ledger the tool measures the
+win rate *and* the realised reward-to-risk, slippage included. Stored in `localStorage` only —
+never uploaded, never sent anywhere. Export/import as JSON for backup.
+
+**Bayesian posterior.** The slider becomes a weak prior worth **4 pseudo-trades**; logged outcomes
+are the evidence:
+
+```
+prior      Beta(4·p₀, 4·(1−p₀))
+posterior  Beta(4·p₀ + wins, 4·(1−p₀) + losses)
+```
+
+At 36 logged trades the opinion carries 10% of the weight and the record carries the rest. The
+panel plots the posterior density, shades the 90% credible interval, and marks the break-even win
+rate the current odds demand.
+
+**Two numbers come out instead of one:**
+
+| Figure | Meaning |
+|---|---|
+| **Central sizing** | `f*` at the posterior mean — growth-optimal given current belief |
+| **Robust sizing** | `f*` at the lower credible bound — the conservative response to a thin record |
+| **P(edge)** | `P(p > break-even)` under the posterior — the probability there is an edge at all |
+
+Because `f*(p) = ((1+b)p − 1)/b` is **linear in p**, two useful things follow and are stated in the
+UI. First, the interval for `f*` is exactly the image of the interval for `p`, so no simulation is
+needed — the quantiles map straight through. Second, `E[log growth]` is linear in `p` too, so the
+growth-optimal fraction under uncertainty sits at the posterior *mean*: uncertainty does not move
+the optimum, it only tells you how much to trust it. That is precisely why the conservative figure
+is the lower bound rather than some arbitrary shrinkage of the mean.
+
+Worked example, verified in the browser — 18 wins at +2R and 12 losses at −1R:
+
+| | Before logging | After 30 trades |
+|---|---|---|
+| Credible interval for p | 17.2% – 89.7% | 45.4% – 72.8% |
+| Posterior mean | 55.0% *(the guess)* | 59.4% |
+| P(edge) | 81% | 100% |
+
+The measured win rate reads 60.0%, realised `b` = 2.00, expectancy +0.80R. An **Adopt measured p**
+button writes the posterior mean back to the slider — it sets the control rather than silently
+overriding it, so the user stays the author of the assumption.
+
+---
+
 ## 05 · The risk memo
 
 The section below the simulator is written in the register of an internal risk memorandum.

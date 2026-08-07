@@ -249,6 +249,59 @@ spot sebelum menuliskannya.
 
 ---
 
+## 04b · Menutup lubang pada `p`
+
+Semua yang dihitung alat ini bertumpu pada probabilitas menang yang ditebak pengguna. Jurnal dan
+posterior ada untuk memensiunkan tebakan itu.
+
+**Jurnal transaksi.** Catat tiap hasil sebagai **kelipatan R** yang terealisasi — `+2,4` berarti
+posisi menghasilkan 2,4× nilai yang dipertaruhkan, `−1,6` berarti stop-nya terlewat gap. R adalah
+satuan yang tepat karena bebas skala, dan karena `b` memang tersusun dari situ. Dari buku itu alat
+ini mengukur win rate *dan* reward-to-risk yang benar-benar terjadi, termasuk slippage. Disimpan
+hanya di `localStorage` — tidak pernah diunggah, tidak dikirim ke mana pun. Bisa diekspor/impor
+sebagai JSON untuk cadangan.
+
+**Posterior Bayesian.** Slider menjadi prior lemah senilai **4 transaksi semu**; hasil yang
+tercatat menjadi buktinya:
+
+```
+prior      Beta(4·p₀, 4·(1−p₀))
+posterior  Beta(4·p₀ + menang, 4·(1−p₀) + kalah)
+```
+
+Pada 36 transaksi tercatat, bobot pendapat tinggal 10% dan sisanya milik rekam jejak. Panelnya
+menggambar densitas posterior, mengarsir interval kredibel 90%, dan menandai win rate impas yang
+dituntut odds saat ini.
+
+**Yang keluar dua angka, bukan satu:**
+
+| Angka | Artinya |
+|---|---|
+| **Sizing tengah** | `f*` pada rata-rata posterior — optimal-pertumbuhan menurut keyakinan saat ini |
+| **Sizing konservatif** | `f*` pada batas bawah kredibel — respons wajar terhadap rekam jejak tipis |
+| **P(edge)** | `P(p > impas)` menurut posterior — peluang edge-nya benar-benar ada |
+
+Karena `f*(p) = ((1+b)p − 1)/b` **linear terhadap p**, ada dua konsekuensi yang juga dijelaskan di
+antarmuka. Pertama, interval `f*` persis merupakan pemetaan interval `p`, jadi tidak perlu simulasi
+— kuantilnya langsung terbawa. Kedua, `E[log pertumbuhan]` juga linear terhadap `p`, sehingga fraksi
+optimal-pertumbuhan di bawah ketidakpastian berada tepat di rata-rata posterior: ketidakpastian
+tidak menggeser titik optimum, ia hanya memberi tahu seberapa layak angka itu dipercaya. Justru
+karena itulah angka konservatifnya memakai batas bawah, bukan penyusutan sembarangan dari rata-rata.
+
+Contoh nyata, diverifikasi di browser — 18 menang di +2R dan 12 kalah di −1R:
+
+| | Sebelum mencatat | Setelah 30 transaksi |
+|---|---|---|
+| Interval kredibel untuk p | 17,2% – 89,7% | 45,4% – 72,8% |
+| Rata-rata posterior | 55,0% *(tebakan)* | 59,4% |
+| P(edge) | 81% | 100% |
+
+Win rate terukur 60,0%, `b` terealisasi 2,00, ekspektasi +0,80R. Tombol **Pakai p terukur** menulis
+rata-rata posterior kembali ke slider — ia *mengatur* kontrolnya, bukan menimpanya diam-diam,
+supaya pengguna tetap menjadi pemilik asumsi itu.
+
+---
+
 ## 05 · Memo risiko
 
 Bagian di bawah simulator ditulis dalam register memorandum risiko internal.
